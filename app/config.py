@@ -6,7 +6,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    # ── Azure OpenAI ────────────────────────────────────────────────────────
+    # ── Azure AI Foundry ─────────────────────────────────────────────────────
+    # Connection string format: "<region>.api.azureml.ms;<subscription-id>;<resource-group>;<project-name>"
+    azure_ai_foundry_project_connection_string: str = ""
+    azure_ai_foundry_model_deployment: str = "gpt-4o"
+
+    # ── Azure OpenAI (fallback / embedding) ─────────────────────────────────
+    # Used directly for embeddings (AI Search indexing) until AI Foundry embedding
+    # support is available via azure-ai-projects.
     azure_openai_endpoint: str
     azure_openai_api_key: str
     azure_openai_deployment: str = "gpt-4o"
@@ -67,3 +74,4 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+

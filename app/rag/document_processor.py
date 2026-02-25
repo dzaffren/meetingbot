@@ -3,9 +3,6 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
-from azure.ai.documentintelligence.aio import DocumentIntelligenceClient
-from azure.core.credentials import AzureKeyCredential
-
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -27,29 +24,6 @@ class DocumentChunk:
     doc_type: str = "meeting"  # "meeting" | "org"
 
 
-def _split_text(text: str, source: str, meeting_id: str, page: int = 1) -> list[DocumentChunk]:
-    """Split text into overlapping chunks."""
-    chunks: list[DocumentChunk] = []
-    start = 0
-    idx = 0
-    while start < len(text):
-        end = start + CHUNK_SIZE
-        chunk_text = text[start:end].strip()
-        if chunk_text:
-            chunks.append(
-                DocumentChunk(
-                    text=chunk_text,
-                    source=source,
-                    page=page,
-                    chunk_index=idx,
-                    meeting_id=meeting_id,
-                )
-            )
-            idx += 1
-        start += CHUNK_SIZE - CHUNK_OVERLAP
-    return chunks
-
-
 async def process_document(
     file_bytes: bytes,
     filename: str,
@@ -59,36 +33,49 @@ async def process_document(
     """
     Analyze a document using Azure Document Intelligence and return text chunks.
     Supports PDF, DOCX, PPTX, XLSX, images (PNG/JPEG/TIFF).
+
+    Args:
+        file_bytes: Raw bytes of the document.
+        filename: Original filename (used as source label in search).
+        meeting_id: Meeting session ID for search scoping.
+        doc_type: "meeting" (session-scoped) or "org" (persistent org KB).
+
+    Returns:
+        List of DocumentChunk objects ready for embedding and indexing.
     """
-    settings = get_settings()
-    client = DocumentIntelligenceClient(
-        endpoint=settings.azure_document_intelligence_endpoint,
-        credential=AzureKeyCredential(settings.azure_document_intelligence_key),
-    )
+    # TODO: Implement document analysis using Azure Document Intelligence.
+    #
+    # Pattern:
+    #   from azure.ai.documentintelligence.aio import DocumentIntelligenceClient
+    #   from azure.core.credentials import AzureKeyCredential
+    #   settings = get_settings()
+    #   client = DocumentIntelligenceClient(
+    #       endpoint=settings.azure_document_intelligence_endpoint,
+    #       credential=AzureKeyCredential(settings.azure_document_intelligence_key),
+    #   )
+    #   async with client:
+    #       poller = await client.begin_analyze_document(
+    #           model_id="prebuilt-layout",
+    #           body=file_bytes,
+    #           content_type="application/octet-stream",
+    #       )
+    #       result = await poller.result()
+    #   # Split each page's text into overlapping chunks using _split_text()
+    #   # Set doc_type on each chunk
+    raise NotImplementedError("TODO: implement process_document()")
 
-    async with client:
-        poller = await client.begin_analyze_document(
-            model_id="prebuilt-layout",
-            analyze_request={"base64Source": None},
-            body=file_bytes,
-            content_type="application/octet-stream",
-        )
-        result = await poller.result()
 
-    all_chunks: list[DocumentChunk] = []
-
-    if result.pages:
-        for page in result.pages:
-            page_num = page.page_number or 1
-            # Collect all line texts on the page
-            lines = [line.content for line in (page.lines or []) if line.content]
-            page_text = " ".join(lines)
-            chunks = _split_text(page_text, filename, meeting_id, page=page_num)
-            for c in chunks:
-                c.doc_type = doc_type
-            all_chunks.extend(chunks)
-
-    logger.info(
-        "Processed '%s': %d pages → %d chunks", filename, len(result.pages or []), len(all_chunks)
-    )
-    return all_chunks
+def _split_text(text: str, source: str, meeting_id: str, page: int = 1) -> list[DocumentChunk]:
+    """Split text into overlapping chunks of CHUNK_SIZE characters with CHUNK_OVERLAP overlap."""
+    # TODO: Implement text chunking.
+    #
+    # Basic sliding window:
+    #   chunks, start, idx = [], 0, 0
+    #   while start < len(text):
+    #       chunk_text = text[start : start + CHUNK_SIZE].strip()
+    #       if chunk_text:
+    #           chunks.append(DocumentChunk(text=chunk_text, source=source, page=page, chunk_index=idx, meeting_id=meeting_id))
+    #           idx += 1
+    #       start += CHUNK_SIZE - CHUNK_OVERLAP
+    #   return chunks
+    raise NotImplementedError("TODO: implement _split_text()")

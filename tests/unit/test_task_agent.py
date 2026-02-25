@@ -1,8 +1,7 @@
-"""Unit tests for TaskAgent (mocked Planner and Cosmos)."""
+"""Unit tests for TaskAgent — updated for AI Foundry agent stubs."""
 from __future__ import annotations
 
 from datetime import date
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -24,38 +23,24 @@ def minutes():
 
 
 @pytest.mark.asyncio
-async def test_assign_tasks_creates_planner_tasks(minutes):
-    async def _planner_mock(items):
-        for idx, i in enumerate(items):
-            i.planner_task_id = f"task-{idx}"
-        return items
+async def test_assign_tasks_raises_not_implemented(minutes):
+    # TODO: Replace with proper mock of AI Foundry agent once implemented.
+    from app.agents.task_agent import assign_tasks
 
-    cosmos_mock = MagicMock()
-    cosmos_mock.upsert = AsyncMock()
-
-    with (
-        patch("app.agents.task_agent.create_planner_tasks", side_effect=_planner_mock),
-        patch("app.agents.task_agent.get_cosmos_store", return_value=cosmos_mock),
-    ):
-        from app.agents.task_agent import assign_tasks
-
-        result = await assign_tasks(minutes)
-
-    assert len(result.action_items) == 2
-    assert cosmos_mock.upsert.call_count == 2
+    with pytest.raises(NotImplementedError):
+        await assign_tasks(minutes)
 
 
 @pytest.mark.asyncio
-async def test_assign_tasks_no_items():
+async def test_assign_tasks_no_items_raises_not_implemented():
+    # TODO: Once assign_tasks() is implemented, empty action_items should return early.
     m = MeetingMinutes(
         meeting_id="m2",
         title="Empty",
         summary="No tasks.",
     )
-    with patch("app.agents.task_agent.create_planner_tasks") as mock_planner:
-        from app.agents.task_agent import assign_tasks
+    from app.agents.task_agent import assign_tasks
 
-        result = await assign_tasks(m)
+    with pytest.raises(NotImplementedError):
+        await assign_tasks(m)
 
-    mock_planner.assert_not_called()
-    assert result.action_items == []
